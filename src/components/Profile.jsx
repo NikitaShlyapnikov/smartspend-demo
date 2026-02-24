@@ -1,3 +1,6 @@
+import { useNavigate } from 'react-router-dom'
+import { STRATEGIES } from '../utils/determineStrategy'
+
 function WaterfallRow({ label, value, type, noBorder }) {
   const valueColor =
     type === 'free' ? 'var(--accent)' : type === 'expense' ? '#e06060' : 'var(--text)'
@@ -24,16 +27,52 @@ function WaterfallRow({ label, value, type, noBorder }) {
   )
 }
 
-function Profile({ profileData, onReset }) {
-  if (!profileData) return null
+function Profile() {
+  const navigate = useNavigate()
 
-  const { name, monthlyIncome, monthlyHousing, monthlyOther, capitalAmount, strategy } = profileData
+  // Support both onboarding flow (userProfile) and login flow (currentUser)
+  const profileData = (() => {
+    try {
+      const up = JSON.parse(localStorage.getItem('userProfile'))
+      if (up?.onboardingCompleted) return up
+
+      const cu = JSON.parse(localStorage.getItem('currentUser'))
+      if (cu?.profile) {
+        const stratId = cu.profile.strategy
+        return {
+          ...cu.profile,
+          strategy: stratId ? STRATEGIES[stratId] : null,
+          onboardingCompleted: true,
+        }
+      }
+    } catch {}
+    return null
+  })()
+
+  if (!profileData) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Профиль не найден</p>
+      </div>
+    )
+  }
+
+  const { name, monthlyIncome, monthlyHousing, monthlyOther, strategy } = profileData
   const freeFlow = monthlyIncome - monthlyHousing - monthlyOther
 
-  // Split emoji from text for the badge
-  const emojiEnd = [...strategy.name].findIndex((ch, i) => i > 0 && ch === ' ')
-  const strategyEmoji = strategy.name.slice(0, emojiEnd)
-  const strategyText = strategy.name.slice(emojiEnd + 1)
+  // Strategy can be an object (onboarding) or string id (login)
+  const strategyObj = strategy && typeof strategy === 'object'
+    ? strategy
+    : strategy
+    ? STRATEGIES[strategy]
+    : null
+
+  const handleReset = () => {
+    localStorage.removeItem('userProfile')
+    localStorage.removeItem('tempOnboarding')
+    localStorage.removeItem('currentUser')
+    navigate('/')
+  }
 
   return (
     <div style={{
@@ -56,32 +95,33 @@ function Profile({ profileData, onReset }) {
             Привет, {name}!
           </h1>
 
-          {/* Strategy badge */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            background: 'var(--accent-dim)',
-            border: '1px solid var(--accent)',
-            borderRadius: '8px',
-            padding: '0.45rem 0.9rem',
-            marginBottom: '0.75rem',
-          }}>
-            <span style={{ fontSize: '1rem' }}>{strategyEmoji}</span>
-            <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.9rem' }}>
-              {strategyText}
-            </span>
-          </div>
-
-          <p style={{
-            color: 'var(--text-muted)',
-            fontSize: '0.88rem',
-            lineHeight: 1.55,
-            maxWidth: '320px',
-            margin: '0 auto',
-          }}>
-            {strategy.longDescription || strategy.description}
-          </p>
+          {strategyObj && (
+            <>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: 'var(--accent-dim)',
+                border: '1px solid var(--accent)',
+                borderRadius: '8px',
+                padding: '0.45rem 0.9rem',
+                marginBottom: '0.75rem',
+              }}>
+                <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.9rem' }}>
+                  {strategyObj.name}
+                </span>
+              </div>
+              <p style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.88rem',
+                lineHeight: 1.55,
+                maxWidth: '320px',
+                margin: '0 auto',
+              }}>
+                {strategyObj.longDescription || strategyObj.description}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Waterfall */}
@@ -108,7 +148,7 @@ function Profile({ profileData, onReset }) {
         </button>
 
         <button
-          onClick={onReset}
+          onClick={handleReset}
           style={{
             width: '100%',
             marginTop: '0.75rem',

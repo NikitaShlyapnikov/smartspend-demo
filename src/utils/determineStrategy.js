@@ -1,5 +1,4 @@
-// Strategy data matches strategies.json from GitHub
-const STRATEGIES = {
+export const STRATEGIES = {
   debt: {
     id: 'debt',
     name: '🔥 Сначала долги',
@@ -36,26 +35,11 @@ function determineStrategy(monthlyIncome, monthlyHousing, monthlyOther, capitalA
   const freeFlow = monthlyIncome - monthlyHousing - monthlyOther
   const hasCapital = capitalAmount > 0
 
-  if (freeFlow <= 0) {
-    return STRATEGIES.debt
-  }
-
-  if (!hasCapital && freeFlow < monthlyIncome * 0.2) {
-    return STRATEGIES.cushion
-  }
-
-  if (monthlyIncome < 55000) {
-    return STRATEGIES.growth
-  }
-
-  if (monthlyIncome <= 75000) {
-    return STRATEGIES.optimization
-  }
-
-  if (hasCapital) {
-    return STRATEGIES.capital
-  }
-
+  if (freeFlow <= 0) return STRATEGIES.debt
+  if (!hasCapital && freeFlow < monthlyIncome * 0.2) return STRATEGIES.cushion
+  if (monthlyIncome < 55000) return STRATEGIES.growth
+  if (monthlyIncome <= 75000) return STRATEGIES.optimization
+  if (hasCapital) return STRATEGIES.capital
   return STRATEGIES.optimization
 }
 

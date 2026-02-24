@@ -1,4 +1,8 @@
-function Landing({ onStart }) {
+import { useNavigate, Link } from 'react-router-dom'
+
+function Landing() {
+  const navigate = useNavigate()
+
   return (
     <div style={{
       display: 'flex',
@@ -37,13 +41,20 @@ function Landing({ onStart }) {
         width: '100%',
         maxWidth: '280px',
       }}>
-        <button className="btn-accent" onClick={onStart}>
+        <button className="btn-accent" onClick={() => navigate('/onboarding')}>
           Начать бесплатно
         </button>
-        <button className="btn-accent" onClick={onStart}>
+        <button className="btn-accent" onClick={() => navigate('/onboarding')}>
           Пройти тест · 2 минуты
         </button>
       </div>
+
+      <p style={{ marginTop: '2.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+        Уже есть аккаунт?{' '}
+        <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+          Войти
+        </Link>
+      </p>
     </div>
   )
 }

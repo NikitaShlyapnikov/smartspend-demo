@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useLocalStorage from '../hooks/useLocalStorage'
 import determineStrategy from '../utils/determineStrategy'
 
 const QUESTIONS_URL =
   'https://raw.githubusercontent.com/NikitaShlyapnikov/smartspend-demo-data/0d64a694c3d1271194e0307438efca7050a9b51f/questions.json'
 
-function Onboarding({ onComplete }) {
+function Onboarding() {
+  const navigate = useNavigate()
   const [questions, setQuestions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -15,10 +17,7 @@ function Onboarding({ onComplete }) {
 
   useEffect(() => {
     fetch(QUESTIONS_URL)
-      .then((r) => {
-        if (!r.ok) throw new Error('fetch failed')
-        return r.json()
-      })
+      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
       .then((data) => {
         setQuestions(data.questions)
         setLoading(false)
@@ -32,10 +31,7 @@ function Onboarding({ onComplete }) {
           setCurrentValue(saved[data.questions[resumeStep]?.id] ?? '')
         }
       })
-      .catch(() => {
-        setError(true)
-        setLoading(false)
-      })
+      .catch(() => { setError(true); setLoading(false) })
   }, [])
 
   // Sync input when step changes
@@ -77,6 +73,7 @@ function Onboarding({ onComplete }) {
       const housing = Number(updated.housing) || 0
       const other = Number(updated.other) || 0
       const capital = Number(updated.capital) || 0
+      const strategy = determineStrategy(income, housing, other, capital)
 
       const profileData = {
         name: updated.name || '',
@@ -84,24 +81,37 @@ function Onboarding({ onComplete }) {
         monthlyHousing: housing,
         monthlyOther: other,
         capitalAmount: capital,
-        strategy: determineStrategy(income, housing, other, capital),
+        strategy,
         onboardingCompleted: true,
       }
+
+      localStorage.setItem('userProfile', JSON.stringify(profileData))
       localStorage.removeItem('tempOnboarding')
-      onComplete(profileData)
+
+      // Update currentUser if present (Register flow)
+      try {
+        const cu = JSON.parse(localStorage.getItem('currentUser'))
+        if (cu) {
+          cu.profile = {
+            name: profileData.name,
+            monthlyIncome: income,
+            monthlyHousing: housing,
+            monthlyOther: other,
+            capitalAmount: capital,
+            strategy: strategy.id,
+          }
+          localStorage.setItem('currentUser', JSON.stringify(cu))
+        }
+      } catch {}
+
+      navigate('/profile')
     } else {
       setStep(nextStep)
     }
   }
 
-  const handleNext = () => {
-    if (!canProceed) return
-    saveCurrentAndAdvance(isLast ? null : step + 1)
-  }
-
-  const handleBack = () => {
-    saveCurrentAndAdvance(step - 1)
-  }
+  const handleNext = () => { if (canProceed) saveCurrentAndAdvance(isLast ? null : step + 1) }
+  const handleBack = () => saveCurrentAndAdvance(step - 1)
 
   return (
     <div style={{
