@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import useLocalStorage from '../hooks/useLocalStorage'
+import determineStrategy from '../utils/determineStrategy'
 
 const QUESTIONS_URL =
   'https://raw.githubusercontent.com/NikitaShlyapnikov/smartspend-demo-data/0d64a694c3d1271194e0307438efca7050a9b51f/questions.json'
@@ -72,22 +73,22 @@ function Onboarding({ onComplete }) {
     setAnswers(updated)
 
     if (nextStep === null) {
-      // Complete onboarding
-      const profile = {
-        userId: 'demo-user',
-        profile: {
-          name: updated.name || '',
-          monthlyIncome: Number(updated.income) || 0,
-          monthlyHousing: Number(updated.housing) || 0,
-          monthlyOther: Number(updated.other) || 0,
-          capitalAmount: Number(updated.capital) || 0,
-        },
+      const income = Number(updated.income) || 0
+      const housing = Number(updated.housing) || 0
+      const other = Number(updated.other) || 0
+      const capital = Number(updated.capital) || 0
+
+      const profileData = {
+        name: updated.name || '',
+        monthlyIncome: income,
+        monthlyHousing: housing,
+        monthlyOther: other,
+        capitalAmount: capital,
+        strategy: determineStrategy(income, housing, other, capital),
         onboardingCompleted: true,
-        createdAt: new Date().toISOString(),
       }
-      localStorage.setItem('userProfile', JSON.stringify(profile))
       localStorage.removeItem('tempOnboarding')
-      onComplete()
+      onComplete(profileData)
     } else {
       setStep(nextStep)
     }
