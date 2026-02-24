@@ -88,20 +88,24 @@ function Onboarding() {
       localStorage.setItem('userProfile', JSON.stringify(profileData))
       localStorage.removeItem('tempOnboarding')
 
-      // Update currentUser if present (Register flow)
+      // Always create/update currentUser so /catalog and /inventory are accessible
       try {
-        const cu = JSON.parse(localStorage.getItem('currentUser'))
-        if (cu) {
-          cu.profile = {
-            name: profileData.name,
-            monthlyIncome: income,
-            monthlyHousing: housing,
-            monthlyOther: other,
-            capitalAmount: capital,
-            strategy: strategy.id,
-          }
-          localStorage.setItem('currentUser', JSON.stringify(cu))
+        const cu = JSON.parse(localStorage.getItem('currentUser')) || {
+          id: 'user-' + Date.now(),
+          username: (updated.name || 'user').toLowerCase(),
+          sets: [],
         }
+        cu.profile = {
+          name: profileData.name,
+          monthlyIncome: income,
+          monthlyHousing: housing,
+          monthlyOther: other,
+          capitalAmount: capital,
+          strategy: strategy.id,
+          smartSetsTotal: cu.profile?.smartSetsTotal || 0,
+        }
+        if (!cu.sets) cu.sets = []
+        localStorage.setItem('currentUser', JSON.stringify(cu))
       } catch {}
 
       navigate('/profile')

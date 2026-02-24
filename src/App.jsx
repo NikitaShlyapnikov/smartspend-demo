@@ -6,41 +6,24 @@ import Register from './components/Register'
 import Onboarding from './components/Onboarding'
 import Profile from './components/Profile'
 import Feed from './components/Feed'
+import Catalog from './components/Catalog'
+import Inventory from './components/Inventory'
 import ProtectedRoute from './components/ProtectedRoute'
 
+const Protected = ({ children }) => (
+  <ProtectedRoute><Layout>{children}</Layout></ProtectedRoute>
+)
+
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Layout><Landing /></Layout>,
-  },
-  {
-    path: '/login',
-    element: <Layout><Login /></Layout>,
-  },
-  {
-    path: '/register',
-    element: <Layout><Register /></Layout>,
-  },
-  {
-    path: '/onboarding',
-    element: <Layout><Onboarding /></Layout>,
-  },
-  {
-    path: '/profile',
-    element: <Layout><Profile /></Layout>,
-  },
-  {
-    path: '/feed',
-    element: (
-      <ProtectedRoute>
-        <Layout><Feed /></Layout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '*',
-    element: <Navigate to="/" replace />,
-  },
+  { path: '/',           element: <Layout><Landing /></Layout> },
+  { path: '/login',      element: <Layout><Login /></Layout> },
+  { path: '/register',   element: <Layout><Register /></Layout> },
+  { path: '/onboarding', element: <Layout><Onboarding /></Layout> },
+  { path: '/profile',    element: <Layout><Profile /></Layout> },
+  { path: '/feed',       element: <Protected><Feed /></Protected> },
+  { path: '/catalog',    element: <Protected><Catalog /></Protected> },
+  { path: '/inventory',  element: <Protected><Inventory /></Protected> },
+  { path: '*',           element: <Navigate to="/" replace /> },
 ])
 
 function App() {

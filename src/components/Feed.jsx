@@ -60,10 +60,13 @@ function Feed() {
           SmartSpend
         </span>
         <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link
-            to="/profile"
-            style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}
-          >
+          <Link to="/catalog" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
+            Каталог
+          </Link>
+          <Link to="/inventory" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
+            Инвентарь
+          </Link>
+          <Link to="/profile" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
             Профиль
           </Link>
           <button
