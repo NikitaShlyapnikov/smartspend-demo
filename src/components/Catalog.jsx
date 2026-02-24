@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import SetCard from './SetCard'
+import { createInventoryItems } from '../utils/inventoryUtils'
 
 const CATALOG_URL =
   'https://raw.githubusercontent.com/NikitaShlyapnikov/smartspend-demo-data/refs/heads/main/catalog.json'
@@ -29,18 +30,24 @@ function Catalog() {
     if (!user) { navigate('/login'); return }
 
     if (!user.sets) user.sets = []
+    if (!user.inventory) user.inventory = []
 
     const set = catalogData.sets.find((s) => s.id === setId)
     const isAdded = user.sets.includes(setId)
 
     if (isAdded) {
+      // Remove set and its inventory items
       user.sets = user.sets.filter((id) => id !== setId)
+      user.inventory = user.inventory.filter((item) => item.setId !== setId)
       user.profile.smartSetsTotal = Math.max(
         0,
         (user.profile.smartSetsTotal || 0) - (set?.monthlyBudget || 0)
       )
     } else {
+      // Add set and create inventory items with pending status
       user.sets.push(setId)
+      const newItems = set ? createInventoryItems(set) : []
+      user.inventory = [...user.inventory, ...newItems]
       user.profile.smartSetsTotal =
         (user.profile.smartSetsTotal || 0) + (set?.monthlyBudget || 0)
     }
