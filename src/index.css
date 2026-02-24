@@ -1,0 +1,48 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface-light: #2a2a2a;
+  --text: #ffffff;
+  --text-muted: #a0a0a0;
+  --accent: #c8f047;
+  --accent-dim: rgba(200, 240, 71, 0.2);
+  --border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn-accent {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-accent:hover:not(:disabled) {
+  background: var(--accent);
+  color: #0f0f0f;
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+}
