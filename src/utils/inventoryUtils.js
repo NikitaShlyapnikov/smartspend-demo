@@ -3,17 +3,17 @@ export const CIRCUMFERENCE = 2 * Math.PI * RING_R
 
 // --- Time helpers ---
 
-export function getDaysLeft(item) {
+export function getDaysLeft(item, now = Date.now()) {
   if (!item.lastPurchasedAt) return null
   const msPerDay = 24 * 60 * 60 * 1000
-  const daysSincePurchase = (Date.now() - new Date(item.lastPurchasedAt)) / msPerDay
+  const daysSincePurchase = (now - new Date(item.lastPurchasedAt)) / msPerDay
   const totalDays = item.totalDays || item.serviceLifeDays || 1
   return Math.ceil(totalDays - daysSincePurchase)
 }
 
-export function getUrgencyStatus(item) {
+export function getUrgencyStatus(item, now = Date.now()) {
   if (item.status === 'pending') return 'pending'
-  const daysLeft = getDaysLeft(item)
+  const daysLeft = getDaysLeft(item, now)
   if (daysLeft === null) return 'pending'
   if (daysLeft < 0) return 'overuse'
   if (daysLeft <= 3) return 'danger'
@@ -22,18 +22,18 @@ export function getUrgencyStatus(item) {
   return 'ok'
 }
 
-export function getTimerDisplay(item) {
+export function getTimerDisplay(item, now = Date.now()) {
   if (item.status === 'pending') return '—'
-  const daysLeft = getDaysLeft(item)
+  const daysLeft = getDaysLeft(item, now)
   if (daysLeft === null) return '—'
   if (daysLeft < 0) return `-${Math.abs(daysLeft)}д`
   if (daysLeft > 30) return `${Math.round(daysLeft / 30)}м`
   return `${daysLeft}д`
 }
 
-export function getRingProgress(item) {
+export function getRingProgress(item, now = Date.now()) {
   if (item.status === 'pending') return 0
-  const daysLeft = getDaysLeft(item)
+  const daysLeft = getDaysLeft(item, now)
   if (daysLeft === null) return 0
   const totalDays = item.totalDays || item.serviceLifeDays || 1
   return Math.max(0, Math.min(1, daysLeft / totalDays))
@@ -54,15 +54,15 @@ export function getRingColor(urgencyStatus) {
 
 // --- Amortization helpers ---
 
-export function getSavedAmount(item) {
+export function getSavedAmount(item, now = Date.now()) {
   if (!item.lastPurchasedAt) return 0
   const msPerWeek = 7 * 24 * 60 * 60 * 1000
-  const weeks = (Date.now() - new Date(item.lastPurchasedAt)) / msPerWeek
+  const weeks = (now - new Date(item.lastPurchasedAt)) / msPerWeek
   return Math.floor(weeks * (item.weeklyCostRub || 0))
 }
 
-export function getProgressPercent(item) {
-  const saved = getSavedAmount(item)
+export function getProgressPercent(item, now = Date.now()) {
+  const saved = getSavedAmount(item, now)
   const target = item.replacementPrice || item.priceRub || 1
   return Math.min(100, Math.floor((saved / target) * 100))
 }

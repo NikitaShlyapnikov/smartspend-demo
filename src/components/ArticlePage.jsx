@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import Navbar from './Navbar'
 import { STRATEGIES } from '../utils/determineStrategy'
 
 const ARTICLES_URL =
@@ -63,28 +64,7 @@ function ArticlePage() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '5rem' }}>
-      {/* Header */}
-      <header style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '1.1rem 2rem',
-        borderBottom: '1px solid var(--border)',
-        position: 'sticky',
-        top: 0,
-        background: 'var(--bg)',
-        zIndex: 10,
-      }}>
-        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.15rem', color: 'var(--accent)', fontWeight: 700 }}>
-          SmartSpend
-        </span>
-        <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link to="/feed"      style={navLink}>Лента</Link>
-          <Link to="/catalog"   style={navLink}>Каталог</Link>
-          <Link to="/inventory" style={navLink}>Инвентарь</Link>
-          <Link to="/profile"   style={navLink}>Профиль</Link>
-        </nav>
-      </header>
+      <Navbar />
 
       <div style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem 1.5rem' }}>
 
@@ -283,7 +263,6 @@ function ArticlePage() {
   )
 }
 
-const navLink = { color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }
 
 // Injected via <style> tag once so article HTML content gets proper styling
 const contentStyle = {

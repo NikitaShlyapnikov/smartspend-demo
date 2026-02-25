@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import Navbar from './Navbar'
 import InventoryItemCard from './InventoryItemCard'
 import EditAmortizationModal from './EditAmortizationModal'
 import { getUrgencyStatus } from '../utils/inventoryUtils'
 
 const CATALOG_URL =
   'https://raw.githubusercontent.com/NikitaShlyapnikov/smartspend-demo-data/refs/heads/main/catalog.json'
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const DAY_MS  = 24 * 60 * 60 * 1000
 
 const URGENCY_CONFIG = [
   { key: 'danger',  label: 'Срочно',           sub: '≤ 3 дней',   color: '#ff6b6b',  bg: 'rgba(255,107,107,0.08)' },
@@ -27,27 +31,43 @@ function Inventory() {
   const [urgencyFilter, setUrgencyFilter] = useState(null)
   const [editModalItem, setEditModalItem] = useState(null)
 
+  // Time simulation
+  const [timeOffsetMs, setTimeOffsetMs] = useState(0)
+  const [speedMode, setSpeedMode] = useState(false)
+  const now = Date.now() + timeOffsetMs
+
+  useEffect(() => {
+    if (!speedMode) return
+    const id = setInterval(() => {
+      setTimeOffsetMs((prev) => prev + WEEK_MS / 20) // 1 week per 20 ticks
+    }, 1000)
+    return () => clearInterval(id)
+  }, [speedMode])
+
+  const adjustTime = (days) => setTimeOffsetMs((prev) => prev + days * DAY_MS)
+
+  const offsetDays = Math.round(timeOffsetMs / DAY_MS)
+
   useEffect(() => {
     fetch(CATALOG_URL)
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then((data) => { setCatalogData(data); setLoading(false) })
       .catch((err) => {
         console.error('[Inventory] catalog fetch error:', err)
-        // Catalog is only needed for category grouping — show inventory anyway
         setLoading(false)
       })
   }, [])
 
-  // Urgency counts (for bar — excludes pending)
+  // Urgency counts using simulated now
   const urgencyCounts = URGENCY_CONFIG.reduce((acc, { key }) => {
-    acc[key] = inventory.filter((i) => getUrgencyStatus(i) === key).length
+    acc[key] = inventory.filter((i) => getUrgencyStatus(i, now) === key).length
     return acc
   }, {})
   const pendingCount = inventory.filter((i) => i.status === 'pending').length
 
   // Active filter
   const displayedItems = urgencyFilter
-    ? inventory.filter((i) => getUrgencyStatus(i) === urgencyFilter)
+    ? inventory.filter((i) => getUrgencyStatus(i, now) === urgencyFilter)
     : inventory
 
   // Group by set's category
@@ -67,7 +87,7 @@ function Inventory() {
   const groupByUrgency = (items) => {
     const result = {}
     items.forEach((item) => {
-      const u = getUrgencyStatus(item)
+      const u = getUrgencyStatus(item, now)
       if (!result[u]) result[u] = []
       result[u].push(item)
     })
@@ -83,17 +103,17 @@ function Inventory() {
   }
 
   const activateItem = (itemId) => {
-    const now = new Date().toISOString()
+    const nowIso = new Date(now).toISOString()
     persistInventory(
       inventory.map((i) =>
-        i.id !== itemId ? i : { ...i, status: 'active', activatedAt: now, lastPurchasedAt: now }
+        i.id !== itemId ? i : { ...i, status: 'active', activatedAt: nowIso, lastPurchasedAt: nowIso }
       )
     )
   }
 
   const handleSaveEdit = ({ serviceLifeWeeks, replacementPrice, weeksElapsed }) => {
     const newLastPurchased = new Date(
-      Date.now() - weeksElapsed * 7 * 24 * 60 * 60 * 1000
+      now - weeksElapsed * WEEK_MS
     ).toISOString()
     const newTotalDays = serviceLifeWeeks * 7
     persistInventory(
@@ -130,31 +150,11 @@ function Inventory() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '4rem' }}>
-      {/* Header */}
-      <header style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '1.1rem 2rem',
-        borderBottom: '1px solid var(--border)',
-        position: 'sticky',
-        top: 0,
-        background: 'var(--bg)',
-        zIndex: 10,
-      }}>
-        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.15rem', color: 'var(--accent)', fontWeight: 700 }}>
-          SmartSpend
-        </span>
-        <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link to="/feed"    style={navLink}>Лента</Link>
-          <Link to="/catalog" style={navLink}>Каталог</Link>
-          <Link to="/profile" style={navLink}>Профиль</Link>
-        </nav>
-      </header>
+      <Navbar />
 
       <div style={{ maxWidth: '780px', margin: '0 auto', padding: '2rem 1.5rem' }}>
         {/* Page title */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.25rem' }}>
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.75rem', fontWeight: 700 }}>
             Мой инвентарь
             {inventory.length > 0 && (
@@ -167,6 +167,71 @@ function Inventory() {
             <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '1rem' }}>
               {totalBudget.toLocaleString('ru-RU')} ₽/мес
             </span>
+          )}
+        </div>
+
+        {/* Speed controls */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          marginBottom: '1.5rem',
+          padding: '0.65rem 1rem',
+          background: 'var(--surface)',
+          border: `1px solid ${speedMode ? '#ffb347' : 'var(--border)'}`,
+          borderRadius: '10px',
+          transition: 'border-color 0.2s',
+        }}>
+          <button
+            onClick={() => setSpeedMode((v) => !v)}
+            style={{
+              padding: '0.35rem 0.85rem',
+              borderRadius: '6px',
+              border: `1px solid ${speedMode ? '#ffb347' : 'var(--border)'}`,
+              background: speedMode ? 'rgba(255,179,71,0.12)' : 'transparent',
+              color: speedMode ? '#ffb347' : 'var(--text-muted)',
+              fontSize: '0.8rem',
+              fontWeight: speedMode ? 600 : 400,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {speedMode ? '⏸ Стоп' : '⚡ Ускорение (1 нед = 20 с)'}
+          </button>
+
+          <div style={{ display: 'flex', gap: '0.35rem' }}>
+            {[[-7, '−7д'], [-1, '−1д'], [1, '+1д'], [7, '+1нед']].map(([d, label]) => (
+              <button
+                key={label}
+                onClick={() => adjustTime(d)}
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {offsetDays !== 0 && (
+            <>
+              <span style={{ fontSize: '0.78rem', color: offsetDays > 0 ? '#ffb347' : '#64b5f6', marginLeft: '0.25rem' }}>
+                {offsetDays > 0 ? '+' : ''}{offsetDays} дн.
+              </span>
+              <button
+                onClick={() => { setTimeOffsetMs(0); setSpeedMode(false) }}
+                style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '0.78rem', cursor: 'pointer', padding: '0', marginLeft: 'auto' }}
+              >
+                Сброс
+              </button>
+            </>
           )}
         </div>
 
@@ -301,9 +366,9 @@ function Inventory() {
                   <InventoryItemCard
                     key={item.id}
                     item={item}
+                    now={now}
                     onActivate={activateItem}
                     onEdit={setEditModalItem}
-                    onAddToList={() => alert('Список покупок — в разработке')}
                   />
                 ))}
               </div>
@@ -322,9 +387,9 @@ function Inventory() {
                         <InventoryItemCard
                           key={item.id}
                           item={item}
+                          now={now}
                           onActivate={activateItem}
                           onEdit={setEditModalItem}
-                          onAddToList={() => alert('Список покупок — в разработке')}
                         />
                       ))}
                     </div>
@@ -339,9 +404,9 @@ function Inventory() {
                       <InventoryItemCard
                         key={item.id}
                         item={item}
+                        now={now}
                         onActivate={activateItem}
                         onEdit={setEditModalItem}
-                        onAddToList={() => alert('Список покупок — в разработке')}
                       />
                     ))}
                   </div>
@@ -378,7 +443,6 @@ function Inventory() {
   )
 }
 
-const navLink = { color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }
 const sectionLabel = {
   fontSize: '0.75rem',
   fontWeight: 600,

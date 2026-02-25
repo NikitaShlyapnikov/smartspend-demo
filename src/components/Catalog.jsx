@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import Navbar from './Navbar'
 import SetCard from './SetCard'
 import { createInventoryItems } from '../utils/inventoryUtils'
 
@@ -75,38 +76,7 @@ function Catalog() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '4rem' }}>
-      {/* Header */}
-      <header style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '1.1rem 2rem',
-        borderBottom: '1px solid var(--border)',
-        position: 'sticky',
-        top: 0,
-        background: 'var(--bg)',
-        zIndex: 10,
-      }}>
-        <span style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: '1.15rem',
-          color: 'var(--accent)',
-          fontWeight: 700,
-        }}>
-          SmartSpend
-        </span>
-        <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link to="/feed" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
-            Лента
-          </Link>
-          <Link to="/inventory" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
-            Инвентарь
-          </Link>
-          <Link to="/profile" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
-            Профиль
-          </Link>
-        </nav>
-      </header>
+      <Navbar />
 
       <div style={{ maxWidth: '960px', margin: '0 auto', padding: '2rem 1.5rem' }}>
         <h1 style={{

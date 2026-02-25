@@ -18,18 +18,18 @@ const BORDER_COLORS = {
   overuse: '#ce93d8',
 }
 
-function InventoryItemCard({ item, onActivate, onEdit, onAddToList }) {
-  const urgency = getUrgencyStatus(item)
+function InventoryItemCard({ item, onActivate, onEdit, now = Date.now() }) {
+  const urgency = getUrgencyStatus(item, now)
   const isPending = item.status === 'pending'
-  const daysLeft = getDaysLeft(item)
-  const timerDisplay = getTimerDisplay(item)
-  const ringProgress = getRingProgress(item)
+  const daysLeft = getDaysLeft(item, now)
+  const timerDisplay = getTimerDisplay(item, now)
+  const ringProgress = getRingProgress(item, now)
   const ringColor = getRingColor(urgency)
   const borderColor = BORDER_COLORS[urgency]
 
   const showAmortization = item.amortizationType === 'depreciating' && !isPending
-  const savedAmount = showAmortization ? getSavedAmount(item) : 0
-  const progressPercent = showAmortization ? getProgressPercent(item) : 0
+  const savedAmount = showAmortization ? getSavedAmount(item, now) : 0
+  const progressPercent = showAmortization ? getProgressPercent(item, now) : 0
   const weeksLeft = daysLeft != null ? Math.ceil(daysLeft / 7) : 0
   const isOveruse = urgency === 'overuse'
   const overuseWeeks = isOveruse && daysLeft != null ? Math.abs(Math.ceil(daysLeft / 7)) : 0
@@ -167,37 +167,21 @@ function InventoryItemCard({ item, onActivate, onEdit, onAddToList }) {
           >
             Активировать
           </button>
-        ) : isOveruse ? (
+        ) : (
           <button
             onClick={() => onEdit(item)}
             style={{
               padding: '0.45rem 0.75rem',
               background: 'transparent',
-              color: '#ce93d8',
-              border: '1px solid rgba(206,147,216,0.35)',
+              color: isOveruse ? '#ce93d8' : 'var(--text-muted)',
+              border: `1px solid ${isOveruse ? 'rgba(206,147,216,0.35)' : 'var(--border)'}`,
               borderRadius: '6px',
               fontSize: '0.75rem',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
           >
-            ✎ Изменить срок
-          </button>
-        ) : (
-          <button
-            onClick={() => onAddToList(item.id)}
-            style={{
-              padding: '0.45rem 0.75rem',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            + В список
+            ✎ Изменить
           </button>
         )}
       </div>

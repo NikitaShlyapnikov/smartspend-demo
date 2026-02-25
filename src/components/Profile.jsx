@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import Navbar from './Navbar'
 import { STRATEGIES } from '../utils/determineStrategy'
 
 const CATALOG_URL =
@@ -7,7 +8,7 @@ const CATALOG_URL =
 
 function WaterfallRow({ label, value, type, noBorder }) {
   const valueColor =
-    type === 'free' ? 'var(--accent)' : type === 'expense' ? '#e06060' : 'var(--text)'
+    type === 'core' ? 'var(--accent)' : type === 'expense' ? '#e06060' : 'var(--text)'
 
   return (
     <div style={{
@@ -18,13 +19,13 @@ function WaterfallRow({ label, value, type, noBorder }) {
       borderBottom: noBorder ? 'none' : '1px solid var(--border)',
     }}>
       <span style={{
-        color: type === 'free' ? 'var(--text)' : 'var(--text-muted)',
+        color: type === 'core' ? 'var(--text)' : 'var(--text-muted)',
         fontSize: '0.9rem',
-        fontWeight: type === 'free' ? 600 : 400,
+        fontWeight: type === 'core' ? 600 : 400,
       }}>
         {label}
       </span>
-      <span style={{ color: valueColor, fontWeight: type === 'free' ? 700 : 400, fontSize: '0.9rem' }}>
+      <span style={{ color: valueColor, fontWeight: type === 'core' ? 700 : 400, fontSize: '0.9rem' }}>
         {value.toLocaleString('ru-RU')} ₽
       </span>
     </div>
@@ -56,7 +57,6 @@ function Profile() {
 
   const profileData = getProfileData()
 
-  // currentUser for sets info (always fresh from localStorage)
   const currentUser = (() => {
     try { return JSON.parse(localStorage.getItem('currentUser')) } catch { return null }
   })()
@@ -79,18 +79,21 @@ function Profile() {
     )
   }
 
-  const { name, monthlyIncome, monthlyHousing, monthlyOther, strategy } = profileData
-  const freeFlow = monthlyIncome - monthlyHousing - monthlyOther
+  const { name, monthlyIncome, monthlyHousing, monthlyOther, capitalAmount, strategy } = profileData
+  const smartSetsTotal = currentUser?.profile?.smartSetsTotal || 0
+  const investCore = monthlyIncome - monthlyHousing - monthlyOther - smartSetsTotal
 
   const strategyObj = strategy && typeof strategy === 'object'
     ? strategy
     : strategy ? STRATEGIES[strategy] : null
 
-  const smartSetsTotal = currentUser?.profile?.smartSetsTotal || 0
-
   const userSets = catalogData
     ? userSetIds.map((id) => catalogData.sets.find((s) => s.id === id)).filter(Boolean)
     : []
+
+  const capital = Number(capitalAmount) || 0
+  const emoMin = capital > 0 ? Math.floor(capital * 0.04 / 12) : 0
+  const emoMax = capital > 0 ? Math.floor(capital * 0.10 / 12) : 0
 
   const handleReset = () => {
     localStorage.removeItem('userProfile')
@@ -100,181 +103,252 @@ function Profile() {
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '3rem 1rem 2rem',
-      minHeight: '100vh',
-    }}>
-      <div style={{ width: '100%', maxWidth: '420px' }}>
+    <div style={{ minHeight: '100vh', paddingBottom: '4rem' }}>
+      <Navbar />
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '2rem',
-            fontWeight: 700,
-            marginBottom: '1.25rem',
-          }}>
-            Привет, {name}!
-          </h1>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2.5rem 1rem' }}>
+        <div style={{ width: '100%', maxWidth: '440px' }}>
 
-          {strategyObj && (
-            <>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                background: 'var(--accent-dim)',
-                border: '1px solid var(--accent)',
-                borderRadius: '8px',
-                padding: '0.45rem 0.9rem',
-                marginBottom: '0.75rem',
-              }}>
-                <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.9rem' }}>
-                  {strategyObj.name}
-                </span>
-              </div>
-              <p style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.88rem',
-                lineHeight: 1.55,
-                maxWidth: '320px',
-                margin: '0 auto',
-              }}>
-                {strategyObj.longDescription || strategyObj.description}
-              </p>
-            </>
-          )}
-        </div>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h1 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '2rem',
+              fontWeight: 700,
+              marginBottom: '1.25rem',
+            }}>
+              Привет, {name}!
+            </h1>
 
-        {/* Waterfall */}
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          marginBottom: '1.5rem',
-        }}>
-          <WaterfallRow label="Доход" value={monthlyIncome} type="income" />
-          <WaterfallRow label="− Жильё" value={monthlyHousing} type="expense" />
-          <WaterfallRow label="− Прочие расходы" value={monthlyOther} type="expense" />
-          {smartSetsTotal > 0 && (
-            <WaterfallRow label="− Smart-наборы" value={smartSetsTotal} type="expense" />
-          )}
-          <WaterfallRow
-            label="Свободный поток"
-            value={freeFlow - smartSetsTotal}
-            type="free"
-            noBorder
-          />
-        </div>
-
-        {/* Smart sets section */}
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-          marginBottom: '1.5rem',
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: userSetIds.length > 0 ? '1rem' : 0,
-          }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 600 }}>Мои Smart-наборы</h3>
-            {smartSetsTotal > 0 && (
-              <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.9rem' }}>
-                {smartSetsTotal.toLocaleString('ru-RU')} ₽/мес
-              </span>
+            {strategyObj && (
+              <>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'var(--accent-dim)',
+                  border: '1px solid var(--accent)',
+                  borderRadius: '8px',
+                  padding: '0.45rem 0.9rem',
+                  marginBottom: '0.75rem',
+                }}>
+                  <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.9rem' }}>
+                    {strategyObj.name}
+                  </span>
+                </div>
+                <p style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.88rem',
+                  lineHeight: 1.55,
+                  maxWidth: '320px',
+                  margin: '0 auto',
+                }}>
+                  {strategyObj.longDescription || strategyObj.description}
+                </p>
+              </>
             )}
           </div>
 
-          {userSetIds.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              Нет добавленных наборов
-            </p>
-          ) : catalogData ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-              {userSets.map((set) => (
-                <div
-                  key={set.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '0.5rem 0.75rem',
-                    background: 'var(--surface-light)',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  <span>{set.name}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                    {set.monthlyBudget.toLocaleString('ru-RU')} ₽/мес
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : userSetIds.length > 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '1rem' }}>
-              {userSetIds.length} набор(а) выбрано
-            </p>
-          ) : null}
+          {/* Waterfall */}
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            marginBottom: '1.25rem',
+          }}>
+            <WaterfallRow label="Доход" value={monthlyIncome} type="income" />
+            <WaterfallRow label="− Жильё" value={monthlyHousing} type="expense" />
+            <WaterfallRow label="− Прочие расходы" value={monthlyOther} type="expense" />
+            {smartSetsTotal > 0 && (
+              <WaterfallRow label="− Smart-наборы" value={smartSetsTotal} type="expense" />
+            )}
+            <WaterfallRow
+              label="💰 Инвестиционное ядро"
+              value={investCore}
+              type="core"
+              noBorder
+            />
+          </div>
 
+          {/* Capital block */}
+          {capital > 0 && (
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '1.1rem 1.25rem',
+              marginBottom: '1.25rem',
+            }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                Текущий капитал
+              </p>
+              <p style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em' }}>
+                {capital.toLocaleString('ru-RU')} ₽
+              </p>
+            </div>
+          )}
+
+          {/* EmoSpend block */}
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            padding: '1.1rem 1.25rem',
+            marginBottom: '1.25rem',
+          }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+              ✨ EmoSpend
+            </p>
+            {capital > 0 ? (
+              <>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
+                  Сколько капитал позволяет тратить на хотелки в месяц
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{
+                    flex: 1,
+                    background: 'var(--surface-light)',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    textAlign: 'center',
+                  }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Минимум (4%)</p>
+                    <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)' }}>
+                      {emoMin.toLocaleString('ru-RU')} ₽
+                    </p>
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', opacity: 0.6, marginTop: '0.2rem' }}>в месяц</p>
+                  </div>
+                  <div style={{
+                    flex: 1,
+                    background: 'var(--surface-light)',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    textAlign: 'center',
+                  }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Максимум (10%)</p>
+                    <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)' }}>
+                      {emoMax.toLocaleString('ru-RU')} ₽
+                    </p>
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', opacity: 0.6, marginTop: '0.2rem' }}>в месяц</p>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.75rem', opacity: 0.7, textAlign: 'center' }}>
+                  Эта сумма не уменьшает капитал
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Начните копить капитал — появится ваш EmoSpend
+              </p>
+            )}
+          </div>
+
+          {/* Smart sets section */}
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            marginBottom: '1.25rem',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: userSetIds.length > 0 ? '1rem' : 0,
+            }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 600 }}>Мои Smart-наборы</h3>
+              {smartSetsTotal > 0 && (
+                <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.9rem' }}>
+                  {smartSetsTotal.toLocaleString('ru-RU')} ₽/мес
+                </span>
+              )}
+            </div>
+
+            {userSetIds.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                Нет добавленных наборов
+              </p>
+            ) : catalogData ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                {userSets.map((set) => (
+                  <div
+                    key={set.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.5rem 0.75rem',
+                      background: 'var(--surface-light)',
+                      borderRadius: '6px',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <span>{set.name}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      {set.monthlyBudget.toLocaleString('ru-RU')} ₽/мес
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : userSetIds.length > 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '1rem' }}>
+                {userSetIds.length} набор(а) выбрано
+              </p>
+            ) : null}
+
+            <Link
+              to="/catalog"
+              style={{
+                display: 'block',
+                textAlign: 'center',
+                padding: '0.6rem',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                color: 'var(--accent)',
+                textDecoration: 'none',
+                fontSize: '0.85rem',
+              }}
+            >
+              + Добавить из каталога
+            </Link>
+          </div>
+
+          {/* CTA */}
           <Link
             to="/catalog"
             style={{
               display: 'block',
               textAlign: 'center',
-              padding: '0.6rem',
-              border: '1px solid var(--border)',
+              padding: '0.85rem',
+              border: '1px solid var(--accent)',
               borderRadius: '8px',
               color: 'var(--accent)',
               textDecoration: 'none',
-              fontSize: '0.85rem',
+              fontSize: '0.95rem',
+              marginBottom: '0.75rem',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = '#0f0f0f' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)' }}
+          >
+            Подобрать Smart-наборы →
+          </Link>
+
+          <button
+            onClick={handleReset}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
             }}
           >
-            + Добавить из каталога
-          </Link>
+            Сбросить данные
+          </button>
         </div>
-
-        {/* CTA */}
-        <Link
-          to="/catalog"
-          style={{
-            display: 'block',
-            textAlign: 'center',
-            padding: '0.85rem',
-            border: '1px solid var(--accent)',
-            borderRadius: '8px',
-            color: 'var(--accent)',
-            textDecoration: 'none',
-            fontSize: '0.95rem',
-            marginBottom: '0.75rem',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = '#0f0f0f' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)' }}
-        >
-          Подобрать Smart-наборы →
-        </Link>
-
-        <button
-          onClick={handleReset}
-          style={{
-            width: '100%',
-            padding: '0.5rem',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '0.8rem',
-          }}
-        >
-          Сбросить данные
-        </button>
       </div>
     </div>
   )
