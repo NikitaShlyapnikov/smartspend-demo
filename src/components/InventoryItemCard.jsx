@@ -16,6 +16,7 @@ const BORDER_COLORS = {
   ok:      'var(--accent)',
   idle:    '#78909c',
   overuse: '#ce93d8',
+  empty:   '#ff7043',
 }
 
 function InventoryItemCard({ item, onActivate, onEdit, now = Date.now() }) {
@@ -32,6 +33,7 @@ function InventoryItemCard({ item, onActivate, onEdit, now = Date.now() }) {
   const progressPercent = showAmortization ? getProgressPercent(item, now) : 0
   const weeksLeft = daysLeft != null ? Math.ceil(daysLeft / 7) : 0
   const isOveruse = urgency === 'overuse'
+  const isEmpty = urgency === 'empty'
   const overuseWeeks = isOveruse && daysLeft != null ? Math.abs(Math.ceil(daysLeft / 7)) : 0
   const overuseAmount = overuseWeeks * (item.weeklyCostRub || 0)
 
@@ -96,11 +98,25 @@ function InventoryItemCard({ item, onActivate, onEdit, now = Date.now() }) {
               Переэксплуатация
             </span>
           )}
+          {isEmpty && (
+            <span style={{
+              fontSize: '0.62rem',
+              background: 'rgba(255,112,67,0.12)',
+              color: '#ff7043',
+              border: '1px solid rgba(255,112,67,0.3)',
+              borderRadius: '4px',
+              padding: '0.1rem 0.4rem',
+            }}>
+              Закончилось
+            </span>
+          )}
         </div>
 
         <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)' }}>
           {isPending ? (
             <span>Не активировано</span>
+          ) : isEmpty ? (
+            <span style={{ color: '#ff7043' }}>Нужна покупка</span>
           ) : item.amortizationType === 'consumable' ? (
             <span>Остаток: {item.currentAmount} {item.unit}</span>
           ) : (
@@ -166,6 +182,23 @@ function InventoryItemCard({ item, onActivate, onEdit, now = Date.now() }) {
             }}
           >
             Активировать
+          </button>
+        ) : isEmpty ? (
+          <button
+            onClick={() => onActivate(item.id)}
+            style={{
+              padding: '0.45rem 0.75rem',
+              background: 'rgba(255,112,67,0.15)',
+              color: '#ff7043',
+              border: '1px solid rgba(255,112,67,0.4)',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Пополнить
           </button>
         ) : (
           <button

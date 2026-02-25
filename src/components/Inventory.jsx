@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from './Navbar'
 import InventoryItemCard from './InventoryItemCard'
 import EditAmortizationModal from './EditAmortizationModal'
+import ActivateItemModal from './ActivateItemModal'
 import { getUrgencyStatus } from '../utils/inventoryUtils'
 
 const CATALOG_URL =
@@ -17,6 +18,7 @@ const URGENCY_CONFIG = [
   { key: 'ok',      label: 'В норме',           sub: '>14 дней',   color: '#c8f047',  bg: 'rgba(200,240,71,0.08)'  },
   { key: 'idle',    label: 'Долгосрочные',      sub: 'мес/годы',   color: '#78909c',  bg: 'rgba(120,144,156,0.08)' },
   { key: 'overuse', label: 'Переэксплуатация',  sub: 'срок истёк', color: '#ce93d8',  bg: 'rgba(156,39,176,0.08)'  },
+  { key: 'empty',   label: 'Закончилось',       sub: 'пополнить',  color: '#ff7043',  bg: 'rgba(255,112,67,0.08)'  },
 ]
 
 function getUser() {
@@ -30,6 +32,7 @@ function Inventory() {
   const [viewMode, setViewMode] = useState('category')
   const [urgencyFilter, setUrgencyFilter] = useState(null)
   const [editModalItem, setEditModalItem] = useState(null)
+  const [activateModalItem, setActivateModalItem] = useState(null)
 
   // Time simulation
   const [timeOffsetMs, setTimeOffsetMs] = useState(0)
@@ -103,12 +106,38 @@ function Inventory() {
   }
 
   const activateItem = (itemId) => {
+    const item = inventory.find((i) => i.id === itemId)
+    if (item?.amortizationType === 'consumable') {
+      setActivateModalItem(item)
+    } else {
+      const nowIso = new Date(now).toISOString()
+      persistInventory(
+        inventory.map((i) =>
+          i.id !== itemId ? i : { ...i, status: 'active', activatedAt: nowIso, lastPurchasedAt: nowIso }
+        )
+      )
+    }
+  }
+
+  const handleSaveActivate = ({ quantity }) => {
+    const item = activateModalItem
+    const packageSize = item.packageSize || item.currentAmount || 1
+    const newTotalDays = Math.round((quantity / packageSize) * item.consumptionDays)
     const nowIso = new Date(now).toISOString()
     persistInventory(
-      inventory.map((i) =>
-        i.id !== itemId ? i : { ...i, status: 'active', activatedAt: nowIso, lastPurchasedAt: nowIso }
-      )
+      inventory.map((i) => {
+        if (i.id !== item.id) return i
+        return {
+          ...i,
+          status: 'active',
+          activatedAt: nowIso,
+          lastPurchasedAt: nowIso,
+          totalDays: newTotalDays,
+          currentAmount: quantity,
+        }
+      })
     )
+    setActivateModalItem(null)
   }
 
   const handleSaveEdit = ({ serviceLifeWeeks, replacementPrice, weeksElapsed }) => {
@@ -200,8 +229,8 @@ function Inventory() {
             {speedMode ? '⏸ Стоп' : '⚡ Ускорение (1 нед = 20 с)'}
           </button>
 
-          <div style={{ display: 'flex', gap: '0.35rem' }}>
-            {[[-7, '−7д'], [-1, '−1д'], [1, '+1д'], [7, '+1нед']].map(([d, label]) => (
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+            {[[-365, '−1г'], [-7, '−7д'], [-1, '−1д'], [1, '+1д'], [7, '+1нед'], [365, '+1г']].map(([d, label]) => (
               <button
                 key={label}
                 onClick={() => adjustTime(d)}
@@ -437,6 +466,15 @@ function Inventory() {
           item={editModalItem}
           onClose={() => setEditModalItem(null)}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {/* Activate consumable modal */}
+      {activateModalItem && (
+        <ActivateItemModal
+          item={activateModalItem}
+          onClose={() => setActivateModalItem(null)}
+          onSave={handleSaveActivate}
         />
       )}
     </div>

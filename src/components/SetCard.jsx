@@ -31,7 +31,7 @@ function SetCard({ set, categoriesMap, isAdded, onToggle }) {
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-        {set.badges.includes('popular') && (
+        {set.badges?.includes('popular') && (
           <span style={{
             background: 'var(--accent-dim)',
             color: 'var(--accent)',
@@ -45,7 +45,7 @@ function SetCard({ set, categoriesMap, isAdded, onToggle }) {
             Популярный
           </span>
         )}
-        {set.badges.includes('economy') && (
+        {set.badges?.includes('economy') && (
           <span style={{
             background: 'rgba(255,152,0,0.15)',
             color: '#ff9800',

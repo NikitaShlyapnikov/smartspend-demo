@@ -120,12 +120,12 @@ function SetPage() {
         <div style={{ marginBottom: '2rem' }}>
           {/* Badges */}
           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-            {set.badges.includes('popular') && (
+            {set.badges?.includes('popular') && (
               <span style={badgeStyle('var(--accent-dim)', 'var(--accent)', 'var(--accent)')}>
                 Популярный
               </span>
             )}
-            {set.badges.includes('economy') && (
+            {set.badges?.includes('economy') && (
               <span style={badgeStyle('rgba(255,152,0,0.15)', '#ff9800', 'rgba(255,152,0,0.4)')}>
                 Экономия
               </span>

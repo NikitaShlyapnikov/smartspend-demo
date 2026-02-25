@@ -314,6 +314,59 @@ function Profile() {
             </Link>
           </div>
 
+          {/* Capital forecast */}
+          {(capital > 0 || investCore > 0) && (
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '1.25rem',
+              marginBottom: '1.25rem',
+            }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                📈 Прогноз капитала (8% годовых)
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                {[
+                  { label: '1 год',  months: 12  },
+                  { label: '3 года', months: 36  },
+                  { label: '5 лет',  months: 60  },
+                  { label: '10 лет', months: 120 },
+                ].map(({ label, months }, i, arr) => {
+                  const r = 0.08 / 12
+                  const P = Math.max(0, investCore)
+                  const C = capital
+                  const fv = Math.round(P * ((Math.pow(1 + r, months) - 1) / r) + C * Math.pow(1 + r, months))
+                  const emoMinFV = Math.floor(fv * 0.04 / 12)
+                  const emoMaxFV = Math.floor(fv * 0.10 / 12)
+                  const isLast = i === arr.length - 1
+                  return (
+                    <div key={label} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.75rem 0',
+                      borderBottom: isLast ? 'none' : '1px solid var(--border)',
+                    }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', minWidth: '3.5rem' }}>{label}</span>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent)' }}>
+                          {fv.toLocaleString('ru-RU')} ₽
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                          EmoSpend: {emoMinFV.toLocaleString('ru-RU')} – {emoMaxFV.toLocaleString('ru-RU')} ₽/мес
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.75rem', opacity: 0.65, lineHeight: 1.4 }}>
+                P = {Math.max(0, investCore).toLocaleString('ru-RU')} ₽/мес · FV = P×((1+r)^n−1)/r + C×(1+r)^n
+              </p>
+            </div>
+          )}
+
           {/* CTA */}
           <Link
             to="/catalog"

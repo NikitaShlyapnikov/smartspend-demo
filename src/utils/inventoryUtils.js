@@ -15,7 +15,7 @@ export function getUrgencyStatus(item, now = Date.now()) {
   if (item.status === 'pending') return 'pending'
   const daysLeft = getDaysLeft(item, now)
   if (daysLeft === null) return 'pending'
-  if (daysLeft < 0) return 'overuse'
+  if (daysLeft < 0) return item.amortizationType === 'consumable' ? 'empty' : 'overuse'
   if (daysLeft <= 3) return 'danger'
   if (daysLeft <= 14) return 'warn'
   if (daysLeft > 60) return 'idle'
@@ -26,7 +26,10 @@ export function getTimerDisplay(item, now = Date.now()) {
   if (item.status === 'pending') return '—'
   const daysLeft = getDaysLeft(item, now)
   if (daysLeft === null) return '—'
-  if (daysLeft < 0) return `-${Math.abs(daysLeft)}д`
+  if (daysLeft < 0) {
+    if (item.amortizationType === 'consumable') return 'Пусто'
+    return `-${Math.abs(daysLeft)}д`
+  }
   if (daysLeft > 30) return `${Math.round(daysLeft / 30)}м`
   return `${daysLeft}д`
 }
@@ -35,6 +38,7 @@ export function getRingProgress(item, now = Date.now()) {
   if (item.status === 'pending') return 0
   const daysLeft = getDaysLeft(item, now)
   if (daysLeft === null) return 0
+  if (daysLeft < 0 && item.amortizationType === 'consumable') return 0
   const totalDays = item.totalDays || item.serviceLifeDays || 1
   return Math.max(0, Math.min(1, daysLeft / totalDays))
 }
@@ -45,6 +49,7 @@ export const RING_COLORS = {
   ok:      '#c8f047',
   idle:    '#78909c',
   overuse: '#ce93d8',
+  empty:   '#ff7043',
   pending: 'rgba(255,255,255,0.15)',
 }
 
@@ -94,6 +99,7 @@ export function createInventoryItems(set) {
         ...base,
         consumptionDays: daysPerPackage,
         totalDays: daysPerPackage,
+        packageSize: item.packageSize,
         currentAmount: item.packageSize,
         unit: item.consumptionUnit,
       }
