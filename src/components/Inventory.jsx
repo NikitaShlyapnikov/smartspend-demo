@@ -22,7 +22,6 @@ function getUser() {
 function Inventory() {
   const [catalogData, setCatalogData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
   const [inventory, setInventory] = useState(() => getUser()?.inventory || [])
   const [viewMode, setViewMode] = useState('category')
   const [urgencyFilter, setUrgencyFilter] = useState(null)
@@ -30,9 +29,13 @@ function Inventory() {
 
   useEffect(() => {
     fetch(CATALOG_URL)
-      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then((data) => { setCatalogData(data); setLoading(false) })
-      .catch(() => { setError(true); setLoading(false) })
+      .catch((err) => {
+        console.error('[Inventory] catalog fetch error:', err)
+        // Catalog is only needed for category grouping — show inventory anyway
+        setLoading(false)
+      })
   }, [])
 
   // Urgency counts (for bar — excludes pending)
@@ -117,13 +120,6 @@ function Inventory() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <p style={{ color: 'var(--text-muted)' }}>Загрузка...</p>
-      </div>
-    )
-  }
-  if (error) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Ошибка загрузки, попробуйте позже</p>
       </div>
     )
   }

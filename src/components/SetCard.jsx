@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 function ItemMeta({ item }) {
   if (item.amortizationType === 'consumable') {
@@ -9,19 +9,26 @@ function ItemMeta({ item }) {
 }
 
 function SetCard({ set, categoriesMap, isAdded, onToggle }) {
+  const navigate = useNavigate()
   const category = categoriesMap[set.categorySlug]
 
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: `1px solid ${isAdded ? 'var(--accent)' : 'var(--border)'}`,
-      borderRadius: '12px',
-      padding: '1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.75rem',
-      transition: 'border-color 0.2s',
-    }}>
+    <div
+      onClick={() => navigate(`/catalog/${set.categorySlug}/${set.id}`)}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = isAdded ? 'var(--accent)' : 'rgba(255,255,255,0.25)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = isAdded ? 'var(--accent)' : 'var(--border)' }}
+      style={{
+        background: 'var(--surface)',
+        border: `1px solid ${isAdded ? 'var(--accent)' : 'var(--border)'}`,
+        borderRadius: '12px',
+        padding: '1.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        transition: 'border-color 0.2s',
+        cursor: 'pointer',
+      }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
         {set.badges.includes('popular') && (
@@ -60,14 +67,7 @@ function SetCard({ set, categoriesMap, isAdded, onToggle }) {
       {/* Name & description */}
       <div>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 600, marginBottom: '0.3rem', lineHeight: 1.3 }}>
-          <Link
-            to={`/catalog/${set.categorySlug}/${set.id}`}
-            style={{ color: 'var(--text)', textDecoration: 'none' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text)'}
-          >
-            {set.name}
-          </Link>
+          {set.name}
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.4, marginBottom: '0.2rem' }}>
           {set.description}
@@ -118,7 +118,7 @@ function SetCard({ set, categoriesMap, isAdded, onToggle }) {
         </div>
 
         <button
-          onClick={() => onToggle(set.id)}
+          onClick={(e) => { e.stopPropagation(); onToggle(set.id) }}
           style={{
             width: '100%',
             padding: '0.6rem',
@@ -132,14 +132,10 @@ function SetCard({ set, categoriesMap, isAdded, onToggle }) {
             transition: 'background 0.2s, color 0.2s',
           }}
           onMouseEnter={(e) => {
-            if (!isAdded) {
-              e.currentTarget.style.background = 'var(--accent-dim)'
-            }
+            if (!isAdded) e.currentTarget.style.background = 'var(--accent-dim)'
           }}
           onMouseLeave={(e) => {
-            if (!isAdded) {
-              e.currentTarget.style.background = 'transparent'
-            }
+            if (!isAdded) e.currentTarget.style.background = 'transparent'
           }}
         >
           {isAdded ? '✓ В инвентаре' : '+ В инвентарь'}
