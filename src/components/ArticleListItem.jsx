@@ -1,7 +1,11 @@
+import { useNavigate } from 'react-router-dom'
+
 function ArticleListItem({ article, index }) {
+  const navigate = useNavigate()
+
   return (
     <div
-      onClick={() => alert(`${article.title}\n\nСтатья в разработке`)}
+      onClick={() => navigate(`/article/${article.id}`)}
       onMouseEnter={(e) => {
         e.currentTarget.querySelector('.list-item-title').style.color = 'var(--accent)'
       }}

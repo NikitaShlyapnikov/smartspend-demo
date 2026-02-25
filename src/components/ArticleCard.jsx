@@ -1,7 +1,11 @@
+import { useNavigate } from 'react-router-dom'
+
 function ArticleCard({ article }) {
+  const navigate = useNavigate()
+
   return (
     <div
-      onClick={() => alert(`${article.title}\n\nСтатья в разработке`)}
+      onClick={() => navigate(`/article/${article.id}`)}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
       style={{

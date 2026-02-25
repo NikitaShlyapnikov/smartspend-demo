@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 function ItemMeta({ item }) {
   if (item.amortizationType === 'consumable') {
     return <span>{item.weeklyAmount}</span>
@@ -58,7 +60,14 @@ function SetCard({ set, categoriesMap, isAdded, onToggle }) {
       {/* Name & description */}
       <div>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 600, marginBottom: '0.3rem', lineHeight: 1.3 }}>
-          {set.name}
+          <Link
+            to={`/catalog/${set.categorySlug}/${set.id}`}
+            style={{ color: 'var(--text)', textDecoration: 'none' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text)'}
+          >
+            {set.name}
+          </Link>
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.4, marginBottom: '0.2rem' }}>
           {set.description}

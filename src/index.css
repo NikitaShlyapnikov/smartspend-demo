@@ -46,3 +46,65 @@ input:focus {
   outline: none;
   border-color: var(--accent) !important;
 }
+
+/* Article page content styles (dangerouslySetInnerHTML) */
+.article-body h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 2.5rem 0 0.85rem;
+  color: var(--text);
+}
+
+.article-body h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 2rem 0 0.65rem;
+  color: var(--text);
+}
+
+.article-body p {
+  margin-bottom: 1.25rem;
+  color: rgba(240, 237, 230, 0.85);
+}
+
+.article-body ul,
+.article-body ol {
+  margin: 1rem 0 1.25rem 1.4rem;
+}
+
+.article-body li {
+  margin-bottom: 0.5rem;
+  color: rgba(240, 237, 230, 0.85);
+}
+
+.article-body strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.article-body em {
+  color: var(--text-muted);
+}
+
+.article-body blockquote {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-dim);
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.article-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.article-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
