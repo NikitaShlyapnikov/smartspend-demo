@@ -20,9 +20,16 @@ function Catalog() {
 
   useEffect(() => {
     fetch(CATALOG_URL)
-      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
+        return r.json()
+      })
       .then((data) => { setCatalogData(data); setLoading(false) })
-      .catch(() => { setError(true); setLoading(false) })
+      .catch((err) => {
+        console.error('[Catalog] fetch error:', err)
+        setError(true)
+        setLoading(false)
+      })
   }, [])
 
   const handleToggle = (setId) => {

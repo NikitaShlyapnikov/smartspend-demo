@@ -88,7 +88,7 @@ export function createInventoryItems(set) {
     if (item.amortizationType === 'consumable') {
       const daysPerPackage = Math.ceil(
         item.packageSize /
-          (item.consumptionRate * (item.consumptionPeriod === 'daily' ? 1 : 7))
+          (item.consumptionRate / (item.consumptionPeriod === 'daily' ? 1 : 7))
       )
       return {
         ...base,
