@@ -71,34 +71,52 @@ function Catalog() {
     setUserSets([...user.sets])
   }
 
+  const handleAddToInventory = (set) => {
+    const user = getUser()
+    if (!user) { navigate('/login'); return }
+    if (!user.sets) user.sets = []
+    if (!user.inventory) user.inventory = []
+    if (user.sets.includes(set.id)) return
+
+    user.sets.push(set.id)
+    const newItems = createInventoryItems(set)
+    user.inventory = [...user.inventory, ...newItems]
+    user.profile.smartSetsTotal = (user.profile.smartSetsTotal || 0) + (set.monthlyBudget || 0)
+    localStorage.setItem('currentUser', JSON.stringify(user))
+    setUserSets([...user.sets])
+  }
+
   const categoriesMap = catalogData
     ? Object.fromEntries(catalogData.categories.map((c) => [c.slug, c]))
     : {}
 
-  // Build mixed set list based on typeFilter
+  const showDefault = typeFilter === 'all' || typeFilter === 'default'
+  const showMy      = typeFilter === 'all' || typeFilter === 'my'
+  const showCom     = typeFilter === 'all' || typeFilter === 'community'
+
+  // Category sub-section sets (used when a specific category is selected)
+  const catDefaultSets = activeFilter && catalogData
+    ? catalogData.sets.filter((s) => s.categorySlug === activeFilter)
+    : []
+  const catMySets = activeFilter
+    ? mySets.filter((s) => s.categorySlug === activeFilter)
+    : []
+  const catCommunitySets = activeFilter && communityData
+    ? communityData.filter((s) => s.categorySlug === activeFilter)
+    : []
+
+  // Build mixed flat set list (used when no category filter active)
   const buildVisibleSets = () => {
     const results = []
-
-    const showDefault = typeFilter === 'all' || typeFilter === 'default'
-    const showMy      = typeFilter === 'all' || typeFilter === 'my'
-    const showCom     = typeFilter === 'all' || typeFilter === 'community'
-
     if (showDefault && catalogData) {
-      let sets = catalogData.sets
-      if (activeFilter) sets = sets.filter((s) => s.categorySlug === activeFilter)
-      sets.forEach((s) => results.push({ ...s, _type: 'default' }))
+      catalogData.sets.forEach((s) => results.push({ ...s, _type: 'default' }))
     }
     if (showMy) {
-      let sets = mySets
-      if (activeFilter) sets = sets.filter((s) => s.categorySlug === activeFilter)
-      sets.forEach((s) => results.push({ ...s, _type: 'my' }))
+      mySets.forEach((s) => results.push({ ...s, _type: 'my' }))
     }
     if (showCom && communityData) {
-      let sets = communityData
-      if (activeFilter) sets = sets.filter((s) => s.categorySlug === activeFilter)
-      sets.forEach((s) => results.push({ ...s, _type: 'community' }))
+      communityData.forEach((s) => results.push({ ...s, _type: 'community' }))
     }
-
     return results
   }
 
@@ -195,30 +213,88 @@ function Catalog() {
               </p>
             )}
 
-            {/* Sets grid */}
-            {visibleSets.length > 0 && (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: '1rem',
-              }}>
-                {visibleSets.map((set) => (
-                  <SetCard
-                    key={`${set._type}-${set.id}`}
-                    set={set}
-                    categoriesMap={categoriesMap}
-                    isAdded={set._type === 'default' && userSets.includes(set.id)}
-                    onToggle={handleToggle}
-                    setType={set._type}
-                  />
-                ))}
-              </div>
-            )}
-
-            {visibleSets.length === 0 && typeFilter !== 'my' && (typeFilter !== 'community' || communityData) && (
-              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem', fontSize: '0.88rem' }}>
-                Нет наборов в этой категории
-              </p>
+            {/* Sets — sub-sections when category selected, flat list otherwise */}
+            {activeFilter !== null ? (
+              <>
+                {showDefault && catDefaultSets.length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+                      🔥 SmartSpend
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {catDefaultSets.map((set) => (
+                        <SetCard key={`default-${set.id}`} set={set} categoriesMap={categoriesMap}
+                          isAdded={userSets.includes(set.id)} onToggle={handleToggle}
+                          onAddToInventory={handleAddToInventory} setType="default" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {showMy && catMySets.length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+                      👤 Мои наборы
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {catMySets.map((set) => (
+                        <SetCard key={`my-${set.id}`} set={set} categoriesMap={categoriesMap}
+                          isAdded={userSets.includes(set.id)} onToggle={handleToggle}
+                          onAddToInventory={handleAddToInventory} setType="my" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {showCom && !communityData && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', padding: '0.5rem 0' }}>
+                    Загрузка наборов сообщества...
+                  </p>
+                )}
+                {showCom && communityData && catCommunitySets.length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+                      🌍 От сообщества
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {catCommunitySets.map((set) => (
+                        <SetCard key={`com-${set.id}`} set={set} categoriesMap={categoriesMap}
+                          isAdded={userSets.includes(set.id)} onToggle={handleToggle}
+                          onAddToInventory={handleAddToInventory} setType="community" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Empty state */}
+                {(!showDefault || catDefaultSets.length === 0) &&
+                  (!showMy || catMySets.length === 0) &&
+                  (!showCom || (communityData && catCommunitySets.length === 0)) && (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem', fontSize: '0.88rem' }}>
+                    Нет наборов в этой категории
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                {visibleSets.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                    {visibleSets.map((set) => (
+                      <SetCard
+                        key={`${set._type}-${set.id}`}
+                        set={set}
+                        categoriesMap={categoriesMap}
+                        isAdded={userSets.includes(set.id)}
+                        onToggle={handleToggle}
+                        onAddToInventory={handleAddToInventory}
+                        setType={set._type}
+                      />
+                    ))}
+                  </div>
+                )}
+                {visibleSets.length === 0 && typeFilter !== 'my' && (typeFilter !== 'community' || communityData) && (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem', fontSize: '0.88rem' }}>
+                    Нет наборов в этой категории
+                  </p>
+                )}
+              </>
             )}
 
             {/* Summary bar */}

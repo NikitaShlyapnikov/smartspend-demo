@@ -10,7 +10,7 @@ function ItemMeta({ item }) {
 }
 
 // setType: 'default' | 'my' | 'community'
-function SetCard({ set, categoriesMap, isAdded, onToggle, setType = 'default' }) {
+function SetCard({ set, categoriesMap, isAdded, onToggle, onAddToInventory, setType = 'default' }) {
   const navigate = useNavigate()
   const category = categoriesMap?.[set.categorySlug]
 
@@ -20,17 +20,13 @@ function SetCard({ set, categoriesMap, isAdded, onToggle, setType = 'default' })
     else navigate(`/catalog/${set.categorySlug}/${set.id}`)
   }
 
-  const actionLabel = setType === 'my'
-    ? '→ Открыть'
-    : setType === 'community'
-      ? '→ Просмотреть'
-      : isAdded ? '✓ В инвентаре' : '+ В инвентарь'
+  const actionLabel = isAdded ? '✓ В инвентаре' : '+ В инвентарь'
 
   const handleAction = (e) => {
     e.stopPropagation()
-    if (setType === 'my') { navigate(`/my-sets/${set.id}`); return }
-    if (setType === 'community') { navigate(`/shared/${set.shareId}`); return }
-    onToggle?.(set.id)
+    if (isAdded) return
+    if (setType === 'default') onToggle?.(set.id)
+    else onAddToInventory?.(set)
   }
 
   const isDefaultAdded = setType === 'default' && isAdded
