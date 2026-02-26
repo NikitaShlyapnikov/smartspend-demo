@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from './Navbar'
 import SetCreatorModal from './SetCreatorModal'
 
@@ -16,6 +17,7 @@ function saveSharedSets(shared) {
 }
 
 function MySets() {
+  const navigate = useNavigate()
   const [mySets, setMySets] = useState(() => getUser()?.mySets || [])
   const [creatorOpen, setCreatorOpen] = useState(false)
   const [editingSet, setEditingSet] = useState(null)
@@ -160,6 +162,7 @@ function MySets() {
                 key={set.id}
                 set={set}
                 isCopied={copiedId === set.id}
+                onNavigate={() => navigate(`/my-sets/${set.id}`)}
                 onEdit={() => openEdit(set)}
                 onDelete={() => handleDelete(set.id)}
                 onTogglePublic={(v) => handleTogglePublic(set.id, v)}
@@ -181,17 +184,24 @@ function MySets() {
   )
 }
 
-function MySetCard({ set, isCopied, onEdit, onDelete, onTogglePublic, onCopyLink }) {
+function MySetCard({ set, isCopied, onNavigate, onEdit, onDelete, onTogglePublic, onCopyLink }) {
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: '12px',
-      padding: '1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.75rem',
-    }}>
+    <div
+      onClick={onNavigate}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: '12px',
+        padding: '1.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        cursor: 'pointer',
+        transition: 'border-color 0.15s',
+      }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.3 }}>{set.name}</h3>
@@ -249,7 +259,7 @@ function MySetCard({ set, isCopied, onEdit, onDelete, onTogglePublic, onCopyLink
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onEdit}
           style={outlineBtn()}
@@ -272,7 +282,7 @@ function MySetCard({ set, isCopied, onEdit, onDelete, onTogglePublic, onCopyLink
 
       {/* Share link */}
       {set.isPublic && (
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
           <span style={{
             flex: 1,
             fontSize: '0.72rem',

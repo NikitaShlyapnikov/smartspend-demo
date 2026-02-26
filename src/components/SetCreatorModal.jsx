@@ -45,8 +45,20 @@ function makeBlankItem() {
     consumptionRate: '',
     consumptionPeriod: 'weekly',
     serviceLifeYears: '',
+    coefficient: 1.0,
+    basePriceRub: '',
+    basePackageSize: '',
+    baseConsumptionRate: '',
+    baseServiceLifeYears: '',
     isCustom: true,
   }
+}
+
+const NUMERIC_BASES = {
+  priceRub:       'basePriceRub',
+  packageSize:    'basePackageSize',
+  consumptionRate:'baseConsumptionRate',
+  serviceLifeYears:'baseServiceLifeYears',
 }
 
 function SetCreatorModal({ initialSet, onClose, onSave }) {
@@ -77,7 +89,23 @@ function SetCreatorModal({ initialSet, onClose, onSave }) {
   const removeItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id))
 
   const updateItem = (id, field, value) =>
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, [field]: value } : it)))
+    setItems((prev) => prev.map((it) => {
+      if (it.id !== id) return it
+      // Coefficient change — scale from base values
+      if (field === 'coefficient') {
+        const coef = Number(value) || 1
+        const scaled = { ...it, coefficient: coef }
+        if (it.basePriceRub)        scaled.priceRub        = String(Math.round(Number(it.basePriceRub) * coef))
+        if (it.basePackageSize)     scaled.packageSize     = String(Math.round(Number(it.basePackageSize) * coef))
+        if (it.baseConsumptionRate) scaled.consumptionRate = String(+(Number(it.baseConsumptionRate) * coef).toFixed(1))
+        if (it.baseServiceLifeYears) scaled.serviceLifeYears = String(+(Number(it.baseServiceLifeYears) * coef).toFixed(1))
+        return scaled
+      }
+      // Numeric field edit — sync to base and reset coef to 1
+      const baseKey = NUMERIC_BASES[field]
+      if (baseKey) return { ...it, [field]: value, [baseKey]: value, coefficient: 1.0 }
+      return { ...it, [field]: value }
+    }))
 
   const addFromCatalog = (catItem) => {
     setItems((prev) => [
@@ -95,6 +123,11 @@ function SetCreatorModal({ initialSet, onClose, onSave }) {
         serviceLifeYears: catItem.serviceLifeYears || '',
         weeklyCostRub: catItem.weeklyCostRub,
         isCustom: false,
+        coefficient: 1.0,
+        basePriceRub: catItem.priceRub,
+        basePackageSize: catItem.packageSize || '',
+        baseConsumptionRate: catItem.consumptionRate || '',
+        baseServiceLifeYears: catItem.serviceLifeYears || '',
       },
     ])
     setShowCatalog(false)
@@ -421,11 +454,31 @@ function ItemRow({ item, onChange, onRemove }) {
         </div>
       )}
 
-      {weekly > 0 && (
-        <div style={{ marginTop: '0.4rem', fontSize: '0.72rem', color: 'var(--accent)', textAlign: 'right' }}>
-          ≈ {weekly} ₽/нед
-        </div>
-      )}
+      {/* Coefficient slider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.45rem' }}>
+        <label style={{ ...labelStyle, marginBottom: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          Масштаб ×
+        </label>
+        <input
+          type="range"
+          min={0.5} max={3.0} step={0.25}
+          value={item.coefficient || 1.0}
+          onChange={(e) => onChange('coefficient', e.target.value)}
+          style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+        />
+        <input
+          type="number"
+          min={0.5} max={3.0} step={0.25}
+          value={item.coefficient || 1.0}
+          onChange={(e) => onChange('coefficient', e.target.value)}
+          style={{ ...inputStyle, width: '4rem', textAlign: 'center', padding: '0.35rem 0.4rem', flexShrink: 0 }}
+        />
+        {weekly > 0 && (
+          <span style={{ fontSize: '0.72rem', color: 'var(--accent)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            ≈ {weekly} ₽/нед
+          </span>
+        )}
+      </div>
     </div>
   )
 }

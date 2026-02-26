@@ -29,8 +29,9 @@ function Inventory() {
   const [catalogData, setCatalogData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [inventory, setInventory] = useState(() => getUser()?.inventory || [])
-  const [viewMode, setViewMode] = useState('category')
   const [urgencyFilter, setUrgencyFilter] = useState(null)
+  const [categoryFilter, setCategoryFilter] = useState(null)
+  const [collapsed, setCollapsed] = useState({})
   const [editModalItem, setEditModalItem] = useState(null)
   const [activateModalItem, setActivateModalItem] = useState(null)
 
@@ -68,34 +69,51 @@ function Inventory() {
   }, {})
   const pendingCount = inventory.filter((i) => i.status === 'pending').length
 
-  // Active filter
-  const displayedItems = urgencyFilter
-    ? inventory.filter((i) => getUrgencyStatus(i, now) === urgencyFilter)
-    : inventory
+  // Apply urgency + category filters
+  const displayedItems = inventory.filter((i) => {
+    if (urgencyFilter && getUrgencyStatus(i, now) !== urgencyFilter) return false
+    if (categoryFilter) {
+      const slug = i.categorySlug
+        || (catalogData?.sets.find((s) => s.id === i.setId)?.categorySlug)
+        || 'other'
+      if (slug !== categoryFilter) return false
+    }
+    return true
+  })
 
-  // Group by set's category
+  // Group by category — works with or without catalogData
   const groupByCategory = (items) => {
-    if (!catalogData) return {}
     const result = {}
     items.forEach((item) => {
-      const set = catalogData.sets.find((s) => s.id === item.setId)
-      const cat = catalogData.categories.find((c) => c.slug === set?.categorySlug)
-      const key = cat?.slug || 'other'
-      if (!result[key]) result[key] = { category: cat, items: [] }
+      let slug = item.categorySlug
+      let category = null
+      if (!slug && catalogData) {
+        const set = catalogData.sets.find((s) => s.id === item.setId)
+        slug = set?.categorySlug
+      }
+      if (catalogData) category = catalogData.categories.find((c) => c.slug === slug)
+      const key = slug || 'other'
+      if (!result[key]) result[key] = { category, slug: key, items: [] }
       result[key].items.push(item)
     })
     return result
   }
 
-  const groupByUrgency = (items) => {
-    const result = {}
-    items.forEach((item) => {
-      const u = getUrgencyStatus(item, now)
-      if (!result[u]) result[u] = []
-      result[u].push(item)
-    })
-    return result
-  }
+  // Unique categories present in full inventory (for filter tabs)
+  const inventoryCategories = (() => {
+    const slugs = new Set(
+      inventory.map((item) => {
+        if (item.categorySlug) return item.categorySlug
+        if (catalogData) return catalogData.sets.find((s) => s.id === item.setId)?.categorySlug || 'other'
+        return 'other'
+      })
+    )
+    if (!catalogData) return [...slugs].map((s) => ({ slug: s, name: s, icon: '📦' }))
+    return catalogData.categories.filter((c) => slugs.has(c.slug))
+  })()
+
+  const toggleCollapse = (slug) =>
+    setCollapsed((prev) => ({ ...prev, [slug]: !prev[slug] }))
 
   const persistInventory = (updated) => {
     const user = getUser()
@@ -173,8 +191,6 @@ function Inventory() {
     )
   }
 
-  const categoryGroups = groupByCategory(displayedItems)
-  const urgencyGroups = groupByUrgency(displayedItems)
   const totalBudget = getUser()?.profile?.smartSetsTotal || 0
 
   return (
@@ -292,12 +308,12 @@ function Inventory() {
 
         {inventory.length > 0 && (
           <>
-            {/* Urgency bar */}
+            {/* Urgency stats bar */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: '0.5rem',
-              marginBottom: '1.75rem',
+              gridTemplateColumns: 'repeat(6, 1fr)',
+              gap: '0.4rem',
+              marginBottom: '1.25rem',
             }}>
               {URGENCY_CONFIG.map(({ key, label, sub, color, bg }) => {
                 const count = urgencyCounts[key]
@@ -310,138 +326,104 @@ function Inventory() {
                       background: isActive ? bg : 'var(--surface)',
                       border: `1px solid ${isActive ? color : 'var(--border)'}`,
                       borderRadius: '10px',
-                      padding: '0.65rem 0.4rem',
+                      padding: '0.55rem 0.25rem',
                       textAlign: 'center',
                       cursor: 'pointer',
                       transition: 'all 0.15s',
                     }}
                   >
-                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color, marginBottom: '0.15rem' }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color, marginBottom: '0.1rem' }}>
                       {count}
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: '0.1rem', lineHeight: 1.2 }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.2 }}>
                       {label}
                     </div>
-                    <div style={{ fontSize: '0.6rem', color, opacity: 0.75 }}>{sub}</div>
                   </div>
                 )
               })}
             </div>
 
-            {/* View toggle */}
-            <div style={{
-              display: 'flex',
-              gap: '4px',
-              marginBottom: '1.25rem',
-              background: 'var(--surface)',
-              borderRadius: '8px',
-              padding: '3px',
-              width: 'fit-content',
-            }}>
-              {['category', 'urgency'].map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  style={{
-                    padding: '0.38rem 0.85rem',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: viewMode === mode ? 'var(--surface-light)' : 'transparent',
-                    color: viewMode === mode ? 'var(--text)' : 'var(--text-muted)',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    fontWeight: viewMode === mode ? 600 : 400,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {mode === 'category' ? 'По категориям' : 'По срочности'}
-                </button>
-              ))}
-            </div>
+            {/* Category filter tabs */}
+            {inventoryCategories.length > 1 && (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                <CatPill label="Все" active={categoryFilter === null} onClick={() => setCategoryFilter(null)} />
+                {inventoryCategories.map((cat) => (
+                  <CatPill
+                    key={cat.slug}
+                    label={`${cat.icon} ${cat.name}`}
+                    active={categoryFilter === cat.slug}
+                    onClick={() => setCategoryFilter(categoryFilter === cat.slug ? null : cat.slug)}
+                  />
+                ))}
+              </div>
+            )}
 
-            {/* Active filter chip */}
-            {urgencyFilter && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginBottom: '1rem',
-                fontSize: '0.82rem',
-                color: 'var(--text-muted)',
-              }}>
-                <span>Фильтр: {URGENCY_CONFIG.find((u) => u.key === urgencyFilter)?.label}</span>
-                <button
-                  onClick={() => setUrgencyFilter(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: '0.82rem' }}
-                >
-                  × Сбросить
-                </button>
+            {/* Active filter chips */}
+            {(urgencyFilter || categoryFilter) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {urgencyFilter && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.2rem 0.5rem' }}>
+                    Срочность: {URGENCY_CONFIG.find((u) => u.key === urgencyFilter)?.label}
+                    <button onClick={() => setUrgencyFilter(null)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0 }}>×</button>
+                  </span>
+                )}
+                {categoryFilter && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.2rem 0.5rem' }}>
+                    {inventoryCategories.find((c) => c.slug === categoryFilter)?.name || categoryFilter}
+                    <button onClick={() => setCategoryFilter(null)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0 }}>×</button>
+                  </span>
+                )}
               </div>
             )}
 
             {displayedItems.length === 0 && (
               <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem', fontSize: '0.9rem' }}>
-                Нет позиций с таким статусом
+                Нет позиций с таким фильтром
               </p>
             )}
 
-            {/* ── Category view ── */}
-            {viewMode === 'category' && Object.entries(categoryGroups).map(([slug, group]) => (
-              <div key={slug} style={{ marginBottom: '2rem' }}>
-                <h3 style={sectionLabel}>
-                  {group.category?.icon} {group.category?.name || slug}
-                </h3>
-                {group.items.map((item) => (
-                  <InventoryItemCard
-                    key={item.id}
-                    item={item}
-                    now={now}
-                    onActivate={activateItem}
-                    onEdit={setEditModalItem}
-                  />
-                ))}
-              </div>
-            ))}
-
-            {/* ── Urgency view ── */}
-            {viewMode === 'urgency' && (
-              <>
-                {URGENCY_CONFIG.map(({ key, label, color }) => {
-                  const items = urgencyGroups[key] || []
-                  if (items.length === 0) return null
-                  return (
-                    <div key={key} style={{ marginBottom: '2rem' }}>
-                      <h3 style={{ ...sectionLabel, color }}>{label} · {items.length}</h3>
-                      {items.map((item) => (
-                        <InventoryItemCard
-                          key={item.id}
-                          item={item}
-                          now={now}
-                          onActivate={activateItem}
-                          onEdit={setEditModalItem}
-                        />
-                      ))}
-                    </div>
-                  )
-                })}
-
-                {/* Pending group at bottom */}
-                {!urgencyFilter && pendingCount > 0 && (
-                  <div style={{ marginBottom: '2rem' }}>
-                    <h3 style={sectionLabel}>Ожидают покупки · {pendingCount}</h3>
-                    {inventory.filter((i) => i.status === 'pending').map((item) => (
-                      <InventoryItemCard
-                        key={item.id}
-                        item={item}
-                        now={now}
-                        onActivate={activateItem}
-                        onEdit={setEditModalItem}
-                      />
-                    ))}
+            {/* ── Category groups (collapsible) ── */}
+            {Object.entries(groupByCategory(displayedItems)).map(([slug, group]) => {
+              const isCollapsed = !!collapsed[slug]
+              return (
+                <div key={slug} style={{ marginBottom: '1.5rem' }}>
+                  {/* Group header */}
+                  <div
+                    onClick={() => toggleCollapse(slug)}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      marginBottom: isCollapsed ? 0 : '0.75rem',
+                      padding: '0.35rem 0',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <h3 style={{ ...sectionLabel, margin: 0 }}>
+                      {group.category?.icon || '📦'} {group.category?.name || slug}
+                      <span style={{ fontWeight: 400, marginLeft: '0.5rem', opacity: 0.6 }}>
+                        · {group.items.length}
+                      </span>
+                    </h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                      {isCollapsed ? '▶' : '▼'}
+                    </span>
                   </div>
-                )}
-              </>
-            )}
+
+                  {/* Items */}
+                  {!isCollapsed && group.items.map((item) => (
+                    <InventoryItemCard
+                      key={item.id}
+                      item={item}
+                      now={now}
+                      onActivate={activateItem}
+                      onEdit={setEditModalItem}
+                    />
+                  ))}
+                </div>
+              )
+            })}
 
             <Link to="/catalog" style={{
               display: 'block',
@@ -488,6 +470,28 @@ const sectionLabel = {
   textTransform: 'uppercase',
   color: 'var(--text-muted)',
   marginBottom: '0.75rem',
+}
+
+function CatPill({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '0.35rem 0.8rem',
+        borderRadius: '20px',
+        border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+        background: active ? 'var(--accent-dim)' : 'transparent',
+        color: active ? 'var(--accent)' : 'var(--text-muted)',
+        fontSize: '0.8rem',
+        fontWeight: active ? 600 : 400,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
+  )
 }
 
 export default Inventory

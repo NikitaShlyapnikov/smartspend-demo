@@ -80,6 +80,7 @@ export function createInventoryItems(set) {
       id: `inv-${item.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
       setItemId: item.id,
       setId: set.id,
+      categorySlug: set.categorySlug,
       name: item.name,
       emoji: item.emoji,
       amortizationType: item.amortizationType,
