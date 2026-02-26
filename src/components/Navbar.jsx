@@ -8,6 +8,7 @@ const TABS = [
   { path: '/feed',      label: 'Лента' },
   { path: '/inventory', label: 'Инвентарь' },
   { path: '/catalog',   label: 'Каталог' },
+  { path: '/my-sets',   label: 'Мои наборы' },
 ]
 
 function Navbar() {

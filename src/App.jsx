@@ -10,6 +10,8 @@ import Catalog from './components/Catalog'
 import Inventory from './components/Inventory'
 import SetPage from './components/SetPage'
 import ArticlePage from './components/ArticlePage'
+import MySets from './components/MySets'
+import SharedSetPage from './components/SharedSetPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const Protected = ({ children }) => (
@@ -22,9 +24,11 @@ const router = createBrowserRouter([
   { path: '/register',   element: <Layout><Register /></Layout> },
   { path: '/onboarding', element: <Layout><Onboarding /></Layout> },
   { path: '/profile',    element: <Layout><Profile /></Layout> },
+  { path: '/shared/:shareId', element: <Layout><SharedSetPage /></Layout> },
   { path: '/feed',       element: <Protected><Feed /></Protected> },
   { path: '/catalog',    element: <Protected><Catalog /></Protected> },
   { path: '/inventory',  element: <Protected><Inventory /></Protected> },
+  { path: '/my-sets',    element: <Protected><MySets /></Protected> },
   { path: '/catalog/:category/:setId', element: <Protected><SetPage /></Protected> },
   { path: '/article/:articleId',       element: <Protected><ArticlePage /></Protected> },
   { path: '*',           element: <Navigate to="/" replace /> },
